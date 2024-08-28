@@ -1,0 +1,106 @@
+#----------------------------------------------------------------------------
+#############################################################################
+# COPYRIGHT Ericsson 2013
+# The copyright to the computer program herein is the property of
+# conditions stipulated in the agreement/contract under which the
+# program have been supplied.
+#############################################################################
+#----------------------------------------------------------------------------
+
+info()
+{
+    logger -s -t TOR_MOD_CLUSTER -p user.notice "INFORMATION ($prg): $@"
+}
+
+error()
+{
+    logger -s -t TOR_MOD_CLUSTER -p user.err "ERROR ($prg): $@"
+}
+
+INST=%{app_opt}/conf
+CONF="/etc/httpd/conf"
+PROPERTIES_FILE="/ericsson/tor/data/global.properties"
+
+if [ ! -f "$PROPERTIES_FILE" ]; then
+    error "Could not find properties file ${PROPERTIES_FILE}"
+    exit 1
+else
+    . $PROPERTIES_FILE
+fi
+
+#Check if UI_PRES_SERVER property is defined
+if [[ -z "$UI_PRES_SERVER" ]]; then
+    error "UI_PRES_SERVER property is not defined in /ericsson/tor/data/global.properties"
+    exit 1
+fi
+
+#If the conf directory does not exist, then create it
+if [ ! -d "${CONF}" ]; then
+    info "Creating ${CONF}"
+    mkdir ${CONF}
+fi
+
+#if the apps directory does not exist, then create it
+if [ ! -d "${CONF}.d/apps" ]; then
+    info "Creating ${CONF}.d/apps"
+    mkdir ${CONF}.d/apps
+fi
+
+#if the ui directory does not exist, then create it
+if [ ! -d "${CONF}.d/ui" ]; then
+    info "Creating ${CONF}.d/ui"
+    mkdir ${CONF}.d/ui
+fi
+
+info "Removing unnecessary files in ${CONF}.d"
+for file in manual.conf README welcome.conf
+do
+    [[ -f "${CONF}.d/${file}" ]] && mv ${CONF}.d/${file} ${INST}.d 2>/dev/null
+done
+
+if [ -f "${CONF}/httpd.conf" ]; then
+    info "Backing up ${CONF}/httpd.conf"
+    cp ${CONF}/httpd.conf ${INST}/httpd.conf.orig 2>/dev/null
+fi
+
+#Check if the httpd.conf.new is present
+if [ -f "${INST}/httpd.conf.new" ]; then
+    info "Creating new ${CONF}/httpd.conf file"
+    cat ${INST}/httpd.conf.new | sed -e "s/#ServerName www.example.com:80/ServerName ${UI_PRES_SERVER}/g" >${CONF}/httpd.conf 2>/dev/null
+else
+    error "${INST}/httpd.conf.new not found"
+    exit 1
+fi
+
+#Check if the mod_cluster conf is present
+if [ -f "${CONF}.d/12_balancer.conf" ]; then
+    info "Updating ${CONF}.d/12_balancer.conf with Apache FQDN"
+    cat ${CONF}.d/12_balancer.conf | sed -e "s/MYHOSTNAME/${UI_PRES_SERVER}/g" >${CONF}.d/12_balancer.conf.tmp 2>/dev/null
+    mv ${CONF}.d/12_balancer.conf.tmp ${CONF}.d/12_balancer.conf
+else
+    error "${CONF}.d/12_balancer.conf not found"
+    exit 1
+fi
+
+#Check if UI conf is present
+if [ -f "${INST}/20_ftui_main.conf" ]; then
+    info "Creating new ${CONF}.d/20_ftui_main.conf"
+    cp ${INST}/20_ftui_main.conf ${CONF}.d/20_ftui_main.conf 2>/dev/null
+else
+    error "${INST}/20_ftui_main.conf not found"
+    exit 1
+fi
+
+
+#Check if SSO Exists
+if [ -f "${CONF}.d/40_ftsso_main.conf" ]; then
+    info "SSO is installed, switching off ${CONF}.d/20_ftui_main.conf"
+    mv ${CONF}.d/20_ftui_main.conf ${CONF}.d/20_ftui_main.OFF 2>/dev/null
+fi
+
+echo "Updating selinux for mod_cluster"
+setsebool -P httpd_can_network_connect on
+semodule -i ${INST}/httpd_t.pp
+restorecon -R /var/www/ext/modules/
+
+exit 0

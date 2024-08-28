@@ -1,0 +1,22 @@
+if [ "$1" -eq 0 ]
+then
+    INST=%{app_opt}/conf
+    CONF="/etc/httpd/conf"
+    semodule -r httpd_t
+	
+	if [ -d "${CONF}.d" ]; then
+        rm -f ${CONF}.d/12_balancer.*
+        rm -f ${CONF}.d/20_ftui_main.*
+	fi
+	
+	if [ -d "${INST}.d" ]; then
+		mv -f ${INST}.d/* ${CONF}.d
+	fi
+	
+	if [ -f "${INST}/httpd.conf.orig" ]; then
+		mv -f ${INST}/httpd.conf.orig ${CONF}/httpd.conf
+    fi
+	
+    setsebool -P httpd_can_network_connect off
+fi
+exit 0

@@ -1,0 +1,150 @@
+ServerTokens OS
+ServerRoot "/etc/httpd"
+PidFile run/httpd.pid
+
+Timeout 120
+KeepAlive On
+MaxKeepAliveRequests 100
+KeepAliveTimeout 15
+
+##
+## Server-Pool Size Regulation (MPM specific)
+## 
+
+# prefork MPM
+# StartServers: number of server processes to start
+# MinSpareServers: minimum number of server processes which are kept spare
+# MaxSpareServers: maximum number of server processes which are kept spare
+# ServerLimit: maximum value for MaxClients for the lifetime of the server
+# MaxClients: maximum number of server processes allowed to start
+# MaxRequestsPerChild: maximum number of requests a server process serves
+<IfModule prefork.c>
+StartServers       8
+MinSpareServers    5
+MaxSpareServers   20
+ServerLimit      256
+MaxClients       256
+MaxRequestsPerChild  4000
+</IfModule>
+
+# worker MPM
+# StartServers: initial number of server processes to start
+# MaxClients: maximum number of simultaneous client connections
+# MinSpareThreads: minimum number of worker threads which are kept spare
+# MaxSpareThreads: maximum number of worker threads which are kept spare
+# ThreadsPerChild: constant number of worker threads in each server process
+# MaxRequestsPerChild: maximum number of requests a server process serves
+<IfModule worker.c>
+ServerLimit 24 
+StartServers 5
+MaxClients 1536
+MinSpareThreads 128
+MaxSpareThreads 512
+ThreadsPerChild 64
+MaxRequestsPerChild 5000
+ListenBacklog 1024
+</IfModule>
+
+Listen 80
+
+LoadModule authz_host_module modules/mod_authz_host.so
+LoadModule include_module modules/mod_include.so
+LoadModule log_config_module modules/mod_log_config.so
+LoadModule logio_module modules/mod_logio.so
+LoadModule env_module modules/mod_env.so
+LoadModule ext_filter_module modules/mod_ext_filter.so
+LoadModule expires_module modules/mod_expires.so
+LoadModule deflate_module modules/mod_deflate.so
+LoadModule headers_module modules/mod_headers.so
+LoadModule setenvif_module modules/mod_setenvif.so
+LoadModule mime_module modules/mod_mime.so
+LoadModule autoindex_module modules/mod_autoindex.so
+LoadModule vhost_alias_module modules/mod_vhost_alias.so
+LoadModule negotiation_module modules/mod_negotiation.so
+LoadModule dir_module modules/mod_dir.so
+LoadModule alias_module modules/mod_alias.so
+LoadModule rewrite_module modules/mod_rewrite.so
+
+LoadModule cache_module modules/mod_cache.so
+#LoadModule disk_cache_module modules/mod_disk_cache.so
+
+#
+# Load config files from the config directory "/etc/httpd/conf.d".
+#
+Include conf.d/*.conf
+
+
+User apache
+Group apache
+
+ServerAdmin root@localhost
+#ServerName www.example.com:80
+UseCanonicalName Off
+DocumentRoot "/var/www/html"
+
+<Directory />
+#    Options FollowSymLinks
+#    AllowOverride None
+    Order allow,deny
+    Allow from all
+</Directory>
+<Directory "/var/www/html">
+    Options Indexes FollowSymLinks
+    AllowOverride None
+    Order allow,deny
+    Allow from all
+</Directory>
+
+DirectoryIndex index.html
+
+TypesConfig /etc/mime.types
+DefaultType text/plain
+
+HostnameLookups Off
+ErrorLog logs/error_log
+LogLevel info
+
+LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" combined
+LogFormat "%h %l %u %t \"%r\" %>s %b" common
+LogFormat "%{Referer}i -> %U" referer
+LogFormat "%{User-agent}i" agent
+
+#CustomLog logs/access_log common
+CustomLog logs/access_log combined
+
+ServerSignature On
+
+AddDefaultCharset UTF-8
+
+BrowserMatch "Mozilla/2" nokeepalive
+BrowserMatch ".*MSIE [2-5]\..*" nokeepalive downgrade-1.0 force-response-1.0
+BrowserMatch "RealPlayer 4\.0" force-response-1.0
+BrowserMatch "Java/1\.0" force-response-1.0
+BrowserMatch "JDK/1\.0" force-response-1.0
+
+BrowserMatch "Microsoft Data Access Internet Publishing Provider" redirect-carefully
+BrowserMatch "MS FrontPage" redirect-carefully
+BrowserMatch "^WebDrive" redirect-carefully
+BrowserMatch "^WebDAVFS/1.[0123]" redirect-carefully
+BrowserMatch "^gnome-vfs/1.0" redirect-carefully
+BrowserMatch "^XML Spy" redirect-carefully
+BrowserMatch "^Dreamweaver-WebDAV-SCM1" redirect-carefully
+
+#LoadModule info_module modules/mod_info.so
+LoadModule status_module modules/mod_status.so
+
+#ExtendedStatus On
+#<Location /server-status>
+#    SetHandler server-status
+#    Order deny,allow
+#    Deny from all
+#    Allow from .example.com
+#</Location>
+
+#<Location /server-info>
+#    SetHandler server-info
+#    Order deny,allow
+#    Deny from all
+#    Allow from .example.com
+#</Location>
+

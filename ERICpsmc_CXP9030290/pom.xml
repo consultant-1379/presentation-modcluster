@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.ericsson.nms.pres</groupId>
+        <artifactId>presentation-modcluster</artifactId>
+        <version>1.5.33-SNAPSHOT</version>
+    </parent>
+    <artifactId>ERICpsmc_CXP9030290</artifactId>
+    <packaging>${rpm.packaging}</packaging>
+
+    <name>[${project.parent.artifactId}] CXP module</name>
+    <properties>
+        <com.ericsson.oss.rpm.architecture>noarch</com.ericsson.oss.rpm.architecture>
+        <!-- Install path = /${rpm-root}/${comp-name}/${install-path} -->
+        <rpm-root>opt</rpm-root>
+        <comp-name>ericsson</comp-name>
+        <install-path>${project.artifactId}</install-path>
+        <publish_artifact>true</publish_artifact>
+    </properties>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>rpm-maven-plugin</artifactId>
+                <configuration>
+                    <group>Applications/System</group>
+                    <defineStatements>
+                       <defineStatement>_binaries_in_noarch_packages_terminate_build 0</defineStatement>
+                       <defineStatement>app_opt /${rpm-root}/${comp-name}/${install-path}</defineStatement>
+                    </defineStatements>
+                    <mappings>
+                        <mapping>
+                            <directory>/${rpm-root}/${comp-name}/${install-path}/conf</directory>
+                            <filemode>755</filemode>
+                            <sources>
+                                <source>
+                                    <location>src/main/conf</location>
+                                </source>
+                            </sources>
+                        </mapping>
+                        <mapping>
+                            <directory>/var/www/ext/modules</directory>
+                            <filemode>755</filemode>
+                            <sources>
+                                <source>
+                                    <location>src/main/modules</location>
+                                </source>
+                            </sources>
+                        </mapping>
+                        <mapping>
+                            <directory>/etc/httpd/ext</directory>
+                            <filemode>755</filemode>
+                            <sources>
+                                <softlinkSource>
+                                    <location>/var/www/ext</location>
+                                </softlinkSource>
+                            </sources>
+                        </mapping>
+                        <mapping>
+                            <directory>/etc/httpd/conf.d</directory>
+                            <filemode>644</filemode>
+                            <sources>
+                                <source>
+                                    <location>src/main/conf.d</location>
+                                </source>
+                            </sources>
+                        </mapping>
+                        <mapping>
+                            <directory>/opt/ericsson/com.ericsson.nms.utilities</directory>
+                            <filemode>755</filemode>
+                            <sources>
+                                <source>
+                                    <location>src/main/resources/healthcheck</location>
+                                </source>
+                            </sources>
+                        </mapping>
+                    </mappings>
+
+                    <!--cleanScriptlet>
+                        <script>rm -rf ${RPM_BUILD_ROOT}</script>
+                    </cleanScriptlet-->
+                    <postinstallScriptlet>
+                        <scriptFile>src/main/scripts/post_install</scriptFile>
+                        <fileEncoding>utf-8</fileEncoding>
+                    </postinstallScriptlet>
+                    <preremoveScriptlet>
+                        <scriptFile>src/main/scripts/pre_remove</scriptFile>
+                        <fileEncoding>utf-8</fileEncoding>
+                    </preremoveScriptlet>
+                    <postremoveScriptlet>
+                        <scriptFile>src/main/scripts/post_remove</scriptFile>
+                        <fileEncoding>utf-8</fileEncoding>
+                    </postremoveScriptlet>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
